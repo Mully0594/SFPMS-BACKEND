@@ -3,7 +3,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import secrets
 import hashlib
-from flask_mail import Message
+from email_service import send_email
 
 from database import db
 from models import User
@@ -460,13 +460,11 @@ def forgot_password():
     db.session.add(reset_token)
     db.session.commit()
 
-    msg = Message(
-        subject="SFPMS Password Reset Verification Code",
-        recipients=[user.email],
-        sender=current_app.config["MAIL_DEFAULT_SENDER"]
-    )
-
-    msg.body = f"""Dear {user.name},
+    try:
+        send_email(
+            user.email,
+            "SFPMS Password Reset Verification Code",
+            f"""Dear {user.name},
 
 We received a request to reset your SFPMS password.
 
@@ -485,9 +483,7 @@ Kind regards,
 SFPMS Administration
 Student Field Placement Management System
 """
-
-    try:
-        current_app.extensions["mail"].send(msg)
+        )
 
     except Exception as email_error:
 

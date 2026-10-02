@@ -1,42 +1,52 @@
-from flask_mail import Message
-from flask import current_app
+import os
+import resend
 
 
-def send_approval_email(
-    student_email,
-    student_name,
-    batch_number
-):
-    msg = Message(
-        subject="SFPMS Application Approved",
-        recipients=[student_email],
-        sender=current_app.config["MAIL_DEFAULT_SENDER"]
+def send_email(to, subject, text):
+    api_key = os.getenv("RESEND_API_KEY")
+    from_email = os.getenv(
+        "RESEND_FROM_EMAIL",
+        "onboarding@resend.dev"
     )
 
-    msg.body = f"""Dear {student_name},
+    if not api_key:
+        raise Exception("RESEND_API_KEY is not configured")
 
-We are pleased to inform you that your Student Field Placement application has been APPROVED.
+    resend.api_key = api_key
 
-Your SFPMS Batch Number is:
+    params = {
+        "from": from_email,
+        "to": [to],
+        "subject": subject,
+        "text": text,
+    }
+
+    return resend.Emails.send(params)
+
+
+def send_approval_email(student_email, student_name, batch_number):
+
+    subject = "SFPMS Application Approved"
+
+    body = f"""Dear {student_name},
+
+Congratulations!
+
+Your SFPMS Student Field Placement application has been APPROVED.
+
+Your Batch Number is:
 
 {batch_number}
 
-Please logout from your current session and login again using:
-
-Batch Number: {batch_number}
-Password: Your existing password
-
-After logging in with your Batch Number, you will have access to:
-- Placement
-- Daily Logs
-- Reports
-
-Please keep your Batch Number safe.
+You can now log in to the SFPMS system using your Batch Number and password.
 
 Kind regards,
 SFPMS Administration
 Student Field Placement Management System
 """
 
-    from app import mail
-    mail.send(msg)
+    return send_email(
+        student_email,
+        subject,
+        body
+    )

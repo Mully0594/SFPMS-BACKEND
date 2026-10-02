@@ -1,19 +1,53 @@
+import os
+import json
+import urllib.request
+import urllib.error
 from flask import current_app
-from flask_mail import Message
 
 
 def send_email(to, subject, text):
-    msg = Message(
-        subject=subject,
-        recipients=[to],
-        sender=current_app.config["MAIL_DEFAULT_SENDER"]
+    api_key = os.getenv("BREVO_API_KEY")
+
+    if not api_key:
+        raise Exception("BREVO_API_KEY is not configured")
+
+    sender = current_app.config.get(
+        "MAIL_DEFAULT_SENDER",
+        "spfmsegaz@gmail.com"
     )
 
-    msg.body = text
+    payload = {
+        "sender": {
+            "name": "eGAZ student field",
+            "email": sender
+        },
+        "to": [
+            {
+                "email": to
+            }
+        ],
+        "subject": subject,
+        "textContent": text
+    }
 
-    current_app.extensions["mail"].send(msg)
+    request = urllib.request.Request(
+        "https://api.brevo.com/v3/smtp/email",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "accept": "application/json",
+            "api-key": api_key,
+            "content-type": "application/json"
+        },
+        method="POST"
+    )
 
-    return True
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            return json.loads(response.read().decode("utf-8"))
+
+    except urllib.error.HTTPError as error:
+        body = error.read().decode("utf-8")
+        raise Exception(f"Brevo API error: {body}")
 
 
 def send_approval_email(student_email, student_name, batch_number):

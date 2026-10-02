@@ -1,31 +1,22 @@
-import os
-import resend
+from flask import current_app
+from flask_mail import Message
 
 
 def send_email(to, subject, text):
-    api_key = os.getenv("RESEND_API_KEY")
-    from_email = os.getenv(
-        "RESEND_FROM_EMAIL",
-        "onboarding@resend.dev"
+    msg = Message(
+        subject=subject,
+        recipients=[to],
+        sender=current_app.config["MAIL_DEFAULT_SENDER"]
     )
 
-    if not api_key:
-        raise Exception("RESEND_API_KEY is not configured")
+    msg.body = text
 
-    resend.api_key = api_key
+    current_app.extensions["mail"].send(msg)
 
-    params = {
-        "from": from_email,
-        "to": [to],
-        "subject": subject,
-        "text": text,
-    }
-
-    return resend.Emails.send(params)
+    return True
 
 
 def send_approval_email(student_email, student_name, batch_number):
-
     subject = "SFPMS Application Approved"
 
     body = f"""Dear {student_name},
@@ -45,8 +36,4 @@ SFPMS Administration
 Student Field Placement Management System
 """
 
-    return send_email(
-        student_email,
-        subject,
-        body
-    )
+    return send_email(student_email, subject, body)

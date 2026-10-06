@@ -45,7 +45,9 @@ class Config:
     if DATABASE_URL.startswith("mysql"):
         SQLALCHEMY_ENGINE_OPTIONS = {
             "connect_args": {
-                "ssl": ssl._create_unverified_context()
+                "ssl": {
+                    "ca": os.getenv("MYSQL_SSL_CA", "")
+                }
             }
         }
     else:
